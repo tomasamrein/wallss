@@ -43,7 +43,7 @@ export function EarningsChart({
             }}
             formatter={(v: number) => [formatearDinero(v, moneda), "Ganancia"]}
           />
-          <Bar dataKey="ganancia" fill="#fafafa" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ganancia" fill="#e89b2d" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

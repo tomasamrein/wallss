@@ -48,10 +48,11 @@ export default async function Dashboard() {
         <Tarjeta
           titulo="Ganancia del mes"
           valor={formatearDinero(gananciaMesActual, config.moneda_activa)}
+          destacado
         />
       </div>
 
-      <section className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+      <section className="rounded-2xl border border-line bg-surface/60 p-5">
         <h2 className="mb-4 text-lg font-semibold">Ganancias mensuales</h2>
         <EarningsChart datos={ganancias} moneda={config.moneda_activa} />
         <p className="mt-2 text-xs text-neutral-500">
@@ -59,7 +60,7 @@ export default async function Dashboard() {
         </p>
       </section>
 
-      <section className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+      <section className="rounded-2xl border border-line bg-surface/60 p-5">
         <h2 className="mb-4 text-lg font-semibold">Turnos de hoy</h2>
         {turnosHoy.length === 0 ? (
           <p className="py-6 text-center text-neutral-400">No hay turnos para hoy.</p>
@@ -83,11 +84,27 @@ export default async function Dashboard() {
   );
 }
 
-function Tarjeta({ titulo, valor }: { titulo: string; valor: string }) {
+function Tarjeta({
+  titulo,
+  valor,
+  destacado = false,
+}: {
+  titulo: string;
+  valor: string;
+  destacado?: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
+    <div
+      className={`rounded-2xl border p-5 ${
+        destacado
+          ? "border-gold/40 bg-gradient-to-b from-surface-2 to-surface"
+          : "border-line bg-surface/60"
+      }`}
+    >
       <p className="text-sm text-neutral-400">{titulo}</p>
-      <p className="mt-1 text-3xl font-bold">{valor}</p>
+      <p className={`mt-1 text-3xl font-bold ${destacado ? "text-gold-light" : ""}`}>
+        {valor}
+      </p>
     </div>
   );
 }

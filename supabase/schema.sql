@@ -44,18 +44,18 @@ create table if not exists public.turnos (
   telefono_cliente    text         not null check (length(trim(telefono_cliente)) > 0),
   -- OBLIGATORIO timestamptz: instante absoluto, independiente de la zona horaria.
   fecha_hora_inicio   timestamptz  not null,
-  -- Fin calculado para poder detectar solapamientos por rango.
-  -- 30 min coincide con duracion_turno_min por defecto; ajustar si se cambia la grilla.
-  fecha_hora_fin      timestamptz  generated always as
-                        (fecha_hora_inicio + interval '30 minutes') stored,
+  -- Fin del turno para detectar solapamientos por rango. Lo completa el trigger:
+  -- NO puede ser GENERATED porque (timestamptz + interval) no es inmutable en PG.
+  -- 30 min coincide con duracion_turno_min por defecto; ajustar si cambia la grilla.
+  fecha_hora_fin      timestamptz  not null,
   creado_en           timestamptz  not null default now()
 );
 
 -- ----------------------------------------------------------------------------
---  2.a. Restricción física de antelación mínima (>= 1 hora).
+--  2.a. Trigger: valida antelación mínima (>= 1 h) y calcula fecha_hora_fin.
 --       NOW() es VOLATILE y no puede usarse en un CHECK, por eso usamos trigger.
 -- ----------------------------------------------------------------------------
-create or replace function public.validar_antelacion_turno()
+create or replace function public.preparar_turno()
 returns trigger
 language plpgsql
 as $$
@@ -64,15 +64,16 @@ begin
     raise exception 'ANTELACION_INSUFICIENTE: el turno debe reservarse con al menos 1 hora de antelación.'
       using errcode = 'check_violation';
   end if;
+  new.fecha_hora_fin := new.fecha_hora_inicio + interval '30 minutes';
   return new;
 end;
 $$;
 
-drop trigger if exists trg_validar_antelacion on public.turnos;
-create trigger trg_validar_antelacion
+drop trigger if exists trg_preparar_turno on public.turnos;
+create trigger trg_preparar_turno
   before insert or update of fecha_hora_inicio on public.turnos
   for each row
-  execute function public.validar_antelacion_turno();
+  execute function public.preparar_turno();
 
 -- ----------------------------------------------------------------------------
 --  2.b. Anti-solapamiento a nivel de base de datos.

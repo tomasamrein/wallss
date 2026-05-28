@@ -1,9 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Wallss · Reservá tu turno",
-  description: "Sistema de turnos de la barbería Wallss.",
+  title: "Wallss Barber · Reservá tu turno",
+  description: "Reservá tu turno en la barbería Wallss en segundos.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
