@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { crearTokenSesion } from "@/lib/session";
 
-const TTL_MS = 60 * 60 * 8 * 1000; // 8 horas
+const TTL_CORTO_MS = 60 * 60 * 8 * 1000; // 8 horas (sesión normal)
+const TTL_LARGO_MS = 60 * 60 * 24 * 30 * 1000; // 30 días ("recordar")
 
 // Throttle de fuerza bruta en memoria (best-effort en serverless).
 const MAX_INTENTOS = 5;
@@ -47,16 +48,20 @@ export async function POST(req: NextRequest) {
   // Login OK: limpiar el contador de intentos de esa IP.
   intentos.delete(ip);
 
+  // "Recordar en este dispositivo" → sesión larga (30 días) en vez de 8 hs.
+  const recordar = form.get("recordar") === "on";
+  const ttl = recordar ? TTL_LARGO_MS : TTL_CORTO_MS;
+
   url.pathname = "/admin";
   url.search = "";
-  const token = await crearTokenSesion(esperado, TTL_MS);
+  const token = await crearTokenSesion(esperado, ttl);
   const res = NextResponse.redirect(url, { status: 303 });
   res.cookies.set("wallss_admin", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: TTL_MS / 1000,
+    maxAge: ttl / 1000,
   });
   return res;
 }

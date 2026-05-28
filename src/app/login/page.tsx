@@ -37,6 +37,15 @@ export default async function LoginAdmin({
               : "Contraseña incorrecta."}
           </p>
         )}
+        <label className="flex items-center gap-2.5 text-sm text-neutral-300">
+          <input
+            type="checkbox"
+            name="recordar"
+            defaultChecked
+            className="h-4 w-4 accent-gold"
+          />
+          Recordar en este dispositivo
+        </label>
         <button
           type="submit"
           className="w-full rounded-2xl bg-gradient-to-b from-gold-light to-gold-dark py-3.5 font-bold text-ink shadow-lg shadow-gold-dark/30 transition active:scale-[0.98]"
