@@ -1,25 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
-type Dia = {
+export type Dia = {
   iso: string;
   semana: string;
   numero: string;
   esHoy: boolean;
   cerrado: boolean;
+  /** Etiqueta legible para el encabezado, ej. "lunes 30 de mayo". */
+  legible: string;
 };
 
-/** Carrusel horizontal de días. Tocar un día recarga con ?fecha=ISO. */
+/** Carrusel horizontal de días. Selección por callback (sin recargar la página). */
 export function SelectorDias({
   dias,
   seleccionada,
+  onSelect,
 }: {
   dias: Dia[];
   seleccionada: string | null;
+  onSelect: (dia: Dia) => void;
 }) {
-  const router = useRouter();
-
   return (
     <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-x-visible sm:px-0">
       {dias.map((d) => {
@@ -45,7 +45,7 @@ export function SelectorDias({
           <button
             key={d.iso}
             type="button"
-            onClick={() => router.push(`/?fecha=${d.iso}`, { scroll: false })}
+            onClick={() => onSelect(d)}
             className={`flex min-w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-2xl border px-3 py-3 transition active:scale-95 ${
               activo
                 ? "border-transparent bg-gradient-to-b from-gold-light to-gold-dark text-ink shadow-lg shadow-gold-dark/30"

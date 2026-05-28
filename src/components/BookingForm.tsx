@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { crearTurno } from "@/app/actions/turnos";
 import { formatearHora } from "@/lib/datetime";
 
@@ -14,12 +13,14 @@ export function BookingForm({
   slotsISO,
   zonaHoraria,
   locale,
+  onReservado,
 }: {
   slotsISO: string[];
   zonaHoraria: string;
   locale: string;
+  /** Se llama tras reservar (o si el slot quedó ocupado) para recargar horarios. */
+  onReservado?: () => void;
 }) {
-  const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
@@ -45,7 +46,7 @@ export function BookingForm({
             setNombre("");
             setApellido("");
             setTelefono("");
-            router.refresh();
+            onReservado?.();
           }}
           className="mt-5 rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-medium text-neutral-200 transition hover:border-gold/50"
         >
@@ -79,7 +80,7 @@ export function BookingForm({
         setEstado({ tipo: "error", mensaje: res.error });
         if (res.codigo === "SLOT_OCUPADO") {
           setSeleccion(null);
-          router.refresh();
+          onReservado?.();
         }
       }
     });
