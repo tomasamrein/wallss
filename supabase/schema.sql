@@ -53,6 +53,9 @@ create table if not exists public.turnos (
   -- Estado del turno. Solo 'completado' cuenta para las ganancias.
   estado              text         not null default 'pendiente'
                         check (estado in ('pendiente', 'completado', 'ausente')),
+  -- Precio congelado al marcar el turno como completado. La caja suma esta
+  -- columna (no el precio actual), así subir el precio no afecta cortes pasados.
+  precio_cobrado      numeric(12,2),
   -- Marca de cuándo se envió el recordatorio (evita doble envío desde el cron).
   recordatorio_enviado_en timestamptz,
   creado_en           timestamptz  not null default now()

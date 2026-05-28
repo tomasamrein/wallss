@@ -167,8 +167,19 @@ export async function actualizarEstadoTurno(
     return { ok: false, error: "Estado inválido.", codigo: "DATOS_INVALIDOS" };
   }
 
+  // Al completar, congelamos el precio vigente; al desmarcar, lo liberamos.
+  // Así subir el precio no recalcula la caja de cortes ya cobrados.
+  let precio_cobrado: number | null = null;
+  if (estado === "completado") {
+    const config = await obtenerConfiguracion();
+    precio_cobrado = config.precio_corte;
+  }
+
   const supabase = getAdminClient();
-  const { error } = await supabase.from("turnos").update({ estado }).eq("id", id);
+  const { error } = await supabase
+    .from("turnos")
+    .update({ estado, precio_cobrado })
+    .eq("id", id);
 
   if (error) {
     return { ok: false, error: "No se pudo actualizar el turno.", codigo: "ERROR_DESCONOCIDO" };

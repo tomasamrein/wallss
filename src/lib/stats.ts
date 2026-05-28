@@ -99,7 +99,8 @@ export async function obtenerGananciasMensuales(
     const entrada = acumulador.get(mes);
     if (entrada) {
       entrada.total_turnos += 1;
-      entrada.ganancia += config.precio_corte;
+      // Precio congelado al completar; si faltara, usa el actual como fallback.
+      entrada.ganancia += t.precio_cobrado ?? config.precio_corte;
     }
   }
 

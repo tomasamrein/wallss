@@ -53,6 +53,8 @@ export type Turno = {
   fecha_hora_inicio: string;
   fecha_hora_fin: string;
   estado: EstadoTurno;
+  /** Precio congelado al completar el turno (null si no se completó). */
+  precio_cobrado: number | null;
   recordatorio_enviado_en: string | null;
   creado_en: string;
 };
@@ -111,6 +113,7 @@ export type Database = {
         Insert: NuevoTurno;
         Update: Partial<NuevoTurno> & {
           estado?: EstadoTurno;
+          precio_cobrado?: number | null;
           recordatorio_enviado_en?: string | null;
         };
         Relationships: [];

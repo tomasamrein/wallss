@@ -57,7 +57,7 @@ export default async function Dashboard() {
         <h2 className="mb-4 text-lg font-semibold">Ganancias mensuales</h2>
         <EarningsChart datos={ganancias} moneda={config.moneda_activa} />
         <p className="mt-2 text-xs text-neutral-500">
-          Solo turnos completados × precio de corte ({formatearDinero(config.precio_corte, config.moneda_activa)}). Los ausentes no suman.
+          Suma de turnos completados al precio cobrado en cada uno. Precio actual del corte: {formatearDinero(config.precio_corte, config.moneda_activa)}. Cambiarlo no afecta cortes ya cobrados.
         </p>
       </section>
 
