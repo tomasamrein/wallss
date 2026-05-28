@@ -50,7 +50,7 @@ export function ControlEstadoTurno({
             : "border-line bg-surface text-neutral-300 hover:border-emerald-600/60"
         }`}
       >
-        Vino
+        Asistió
       </button>
       <button
         type="button"
@@ -62,7 +62,7 @@ export function ControlEstadoTurno({
             : "border-line bg-surface text-neutral-300 hover:border-red-700/60"
         }`}
       >
-        No vino
+        No asistió
       </button>
       {estado !== "completado" && (
         <button
