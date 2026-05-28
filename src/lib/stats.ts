@@ -92,6 +92,8 @@ export async function obtenerGananciasMensuales(
   }
 
   for (const t of turnos) {
+    // Solo los turnos completados generan ingresos (los ausentes no cuentan).
+    if (t.estado !== "completado") continue;
     const d = new Date(t.fecha_hora_inicio);
     const mes = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     const entrada = acumulador.get(mes);

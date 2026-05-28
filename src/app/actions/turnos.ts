@@ -8,9 +8,10 @@ import {
   enviarNotificacionWhatsApp,
   construirMensajeBarbero,
 } from "@/lib/whatsapp";
-import type { ResultadoAccion, Turno } from "@/lib/types";
+import type { EstadoTurno, ResultadoAccion, Turno } from "@/lib/types";
 
 const ANTELACION_MS = 60 * 60_000;
+const ESTADOS_VALIDOS: EstadoTurno[] = ["pendiente", "completado", "ausente"];
 
 /**
  * Crea un turno desde el panel público.
@@ -96,6 +97,29 @@ export async function crearTurno(input: {
   revalidatePath("/");
   revalidatePath("/admin");
   return { ok: true, data };
+}
+
+/**
+ * Marca el estado de un turno desde el panel admin.
+ * Solo los turnos 'completado' suman a las ganancias.
+ */
+export async function actualizarEstadoTurno(
+  id: string,
+  estado: EstadoTurno,
+): Promise<ResultadoAccion> {
+  if (!ESTADOS_VALIDOS.includes(estado)) {
+    return { ok: false, error: "Estado inválido.", codigo: "DATOS_INVALIDOS" };
+  }
+
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("turnos").update({ estado }).eq("id", id);
+
+  if (error) {
+    return { ok: false, error: "No se pudo actualizar el turno.", codigo: "ERROR_DESCONOCIDO" };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, data: undefined };
 }
 
 /** Notifica al barbero por WhatsApp. Se ejecuta fuera del camino crítico. */

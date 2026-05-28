@@ -20,7 +20,7 @@ export function SelectorDias({
   const router = useRouter();
 
   return (
-    <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+    <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-x-visible sm:px-0">
       {dias.map((d) => {
         const activo = seleccionada === d.iso;
         return (

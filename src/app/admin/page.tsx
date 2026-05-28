@@ -6,6 +6,7 @@ import {
 import { claveDia, formatearHora, horaLocalAUtc } from "@/lib/datetime";
 import { formatearDinero } from "@/lib/format";
 import { EarningsChart } from "@/components/EarningsChart";
+import { ControlEstadoTurno } from "@/components/ControlEstadoTurno";
 import type { Moneda } from "@/lib/types";
 
 const LOCALE_POR_MONEDA: Record<Moneda, string> = { ARS: "es-AR", EUR: "es-ES" };
@@ -56,7 +57,7 @@ export default async function Dashboard() {
         <h2 className="mb-4 text-lg font-semibold">Ganancias mensuales</h2>
         <EarningsChart datos={ganancias} moneda={config.moneda_activa} />
         <p className="mt-2 text-xs text-neutral-500">
-          Estimadas como turnos × precio de corte ({formatearDinero(config.precio_corte, config.moneda_activa)}).
+          Solo turnos completados × precio de corte ({formatearDinero(config.precio_corte, config.moneda_activa)}). Los ausentes no suman.
         </p>
       </section>
 
@@ -65,16 +66,28 @@ export default async function Dashboard() {
         {turnosHoy.length === 0 ? (
           <p className="py-6 text-center text-neutral-400">No hay turnos para hoy.</p>
         ) : (
-          <ul className="divide-y divide-neutral-800">
+          <ul className="divide-y divide-line">
             {turnosHoy.map((t) => (
-              <li key={t.id} className="flex items-center gap-4 py-3">
+              <li
+                key={t.id}
+                className={`flex flex-wrap items-center gap-x-4 gap-y-2 py-3 ${
+                  t.estado === "ausente" ? "opacity-50" : ""
+                }`}
+              >
                 <span className="w-14 font-mono text-sm text-neutral-300">
                   {formatearHora(t.fecha_hora_inicio, config.zona_horaria, locale)}
                 </span>
-                <span className="font-medium">{t.nombre_cliente}</span>
-                <span className="ml-auto text-sm text-neutral-400">
-                  {t.telefono_cliente}
+                <span
+                  className={`font-medium ${
+                    t.estado === "ausente" ? "line-through" : ""
+                  }`}
+                >
+                  {t.nombre_cliente}
                 </span>
+                <span className="text-sm text-neutral-400">{t.telefono_cliente}</span>
+                <div className="ml-auto">
+                  <ControlEstadoTurno id={t.id} estado={t.estado} />
+                </div>
               </li>
             ))}
           </ul>

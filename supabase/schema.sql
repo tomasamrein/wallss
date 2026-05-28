@@ -48,6 +48,9 @@ create table if not exists public.turnos (
   -- NO puede ser GENERATED porque (timestamptz + interval) no es inmutable en PG.
   -- 30 min coincide con duracion_turno_min por defecto; ajustar si cambia la grilla.
   fecha_hora_fin      timestamptz  not null,
+  -- Estado del turno. Solo 'completado' cuenta para las ganancias.
+  estado              text         not null default 'pendiente'
+                        check (estado in ('pendiente', 'completado', 'ausente')),
   creado_en           timestamptz  not null default now()
 );
 
@@ -95,6 +98,10 @@ create index if not exists idx_turnos_fecha_hora_inicio
 -- Índice para el ERP de clientes (agrupar por teléfono).
 create index if not exists idx_turnos_telefono
   on public.turnos (telefono_cliente);
+
+-- Índice para filtrar por estado (ganancias = solo 'completado').
+create index if not exists idx_turnos_estado
+  on public.turnos (estado);
 
 -- ============================================================================
 --  3. SEGURIDAD (Row Level Security)

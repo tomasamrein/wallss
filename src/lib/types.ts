@@ -5,6 +5,9 @@
 /** Monedas soportadas por el sistema (blindaje para i18n: ARS hoy, EUR futuro). */
 export type Moneda = "ARS" | "EUR";
 
+/** Estado de un turno. Solo 'completado' suma a las ganancias. */
+export type EstadoTurno = "pendiente" | "completado" | "ausente";
+
 /** Fila de configuración global (singleton, id = 1). */
 export type Configuracion = {
   id: number;
@@ -39,6 +42,7 @@ export type Turno = {
   /** ISO 8601 con offset, p. ej. "2026-05-28T13:30:00+00:00". */
   fecha_hora_inicio: string;
   fecha_hora_fin: string;
+  estado: EstadoTurno;
   creado_en: string;
 };
 
@@ -94,7 +98,7 @@ export type Database = {
       turnos: {
         Row: Turno;
         Insert: NuevoTurno;
-        Update: Partial<NuevoTurno>;
+        Update: Partial<NuevoTurno> & { estado?: EstadoTurno };
         Relationships: [];
       };
     };

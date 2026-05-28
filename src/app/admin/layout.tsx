@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { cerrarSesionAdmin } from "@/app/actions/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             ))}
           </nav>
-          <form action={cerrarSesionAdmin} className="ml-auto">
+          <form action="/api/logout" method="post" className="ml-auto">
             <button className="text-sm text-neutral-500 transition hover:text-gold">
               Salir
             </button>
