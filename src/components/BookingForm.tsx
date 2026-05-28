@@ -23,6 +23,7 @@ export function BookingForm({
   const [pendiente, startTransition] = useTransition();
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
   const [website, setWebsite] = useState(""); // honeypot anti-bots
   const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
@@ -42,6 +43,7 @@ export function BookingForm({
             setEstado({ tipo: "idle" });
             setSeleccion(null);
             setNombre("");
+            setApellido("");
             setTelefono("");
             router.refresh();
           }}
@@ -55,12 +57,15 @@ export function BookingForm({
 
   function confirmar() {
     if (!seleccion) return setEstado({ tipo: "error", mensaje: "Elegí un horario." });
-    if (!nombre.trim() || !telefono.trim())
-      return setEstado({ tipo: "error", mensaje: "Completá tu nombre y teléfono." });
+    if (!nombre.trim() || !apellido.trim() || !telefono.trim())
+      return setEstado({
+        tipo: "error",
+        mensaje: "Completá nombre, apellido y teléfono.",
+      });
 
     startTransition(async () => {
       const res = await crearTurno({
-        nombre_cliente: nombre,
+        nombre_cliente: `${nombre.trim()} ${apellido.trim()}`,
         telefono_cliente: telefono,
         fecha_hora_inicio: seleccion,
         website,
@@ -109,14 +114,24 @@ export function BookingForm({
         <div className="space-y-4 rounded-3xl border border-line bg-surface/70 p-5">
           <p className="text-sm font-medium text-neutral-300">Tus datos</p>
           <div className="space-y-3">
-            <input
-              type="text"
-              inputMode="text"
-              placeholder="Nombre y apellido"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="w-full rounded-xl border border-line bg-ink px-4 py-3 text-base outline-none transition focus:border-gold"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                inputMode="text"
+                placeholder="Nombre"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                className="w-full rounded-xl border border-line bg-ink px-4 py-3 text-base outline-none transition focus:border-gold"
+              />
+              <input
+                type="text"
+                inputMode="text"
+                placeholder="Apellido"
+                value={apellido}
+                onChange={(e) => setApellido(e.target.value)}
+                className="w-full rounded-xl border border-line bg-ink px-4 py-3 text-base outline-none transition focus:border-gold"
+              />
+            </div>
             <input
               type="tel"
               inputMode="tel"

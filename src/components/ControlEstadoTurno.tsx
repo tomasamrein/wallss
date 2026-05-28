@@ -64,15 +64,17 @@ export function ControlEstadoTurno({
       >
         No vino
       </button>
-      <button
-        type="button"
-        onClick={cancelar}
-        disabled={pendiente}
-        title="Cancelar turno"
-        className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-semibold text-neutral-400 transition hover:border-red-700/60 hover:text-red-300 disabled:opacity-50"
-      >
-        Cancelar
-      </button>
+      {estado !== "completado" && (
+        <button
+          type="button"
+          onClick={cancelar}
+          disabled={pendiente}
+          title="Cancelar turno"
+          className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-semibold text-neutral-400 transition hover:border-red-700/60 hover:text-red-300 disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+      )}
     </div>
   );
 }

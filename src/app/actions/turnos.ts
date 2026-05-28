@@ -51,6 +51,10 @@ export async function crearTurno(input: {
   if (nombre.length < 2 || nombre.length > 80) {
     return { ok: false, error: "El nombre no es válido.", codigo: "DATOS_INVALIDOS" };
   }
+  // Exigir nombre y apellido (al menos dos palabras) para distinguir clientes.
+  if (nombre.split(/\s+/).filter(Boolean).length < 2) {
+    return { ok: false, error: "Ingresá nombre y apellido.", codigo: "DATOS_INVALIDOS" };
+  }
   if (!TELEFONO_REGEX.test(telefono)) {
     return { ok: false, error: "El teléfono no es válido.", codigo: "DATOS_INVALIDOS" };
   }
@@ -177,10 +181,23 @@ export async function actualizarEstadoTurno(
 /** Cancela (elimina) un turno desde el panel admin y libera el horario. */
 export async function cancelarTurno(id: string): Promise<ResultadoAccion> {
   const supabase = getAdminClient();
-  const { error } = await supabase.from("turnos").delete().eq("id", id);
+  // No se permite cancelar un turno ya marcado como asistido (cuenta como histórico).
+  const { data, error } = await supabase
+    .from("turnos")
+    .delete()
+    .eq("id", id)
+    .neq("estado", "completado")
+    .select("id");
 
   if (error) {
     return { ok: false, error: "No se pudo cancelar el turno.", codigo: "ERROR_DESCONOCIDO" };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error: "No se puede cancelar un turno ya asistido.",
+      codigo: "DATOS_INVALIDOS",
+    };
   }
 
   revalidatePath("/admin");
