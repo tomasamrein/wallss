@@ -1,13 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { validarTokenSesion } from "@/lib/session";
 
 /**
- * Gate simple para /admin: exige una cookie cuyo valor coincida con
- * ADMIN_PASSWORD. Suficiente para el MVP; para producción real conviene
- * migrar a Supabase Auth con roles.
+ * Gate para /admin: exige una cookie de sesión firmada (HMAC) válida y no
+ * vencida. La firma usa ADMIN_PASSWORD como secreto.
  */
-export function middleware(req: NextRequest) {
-  const cookie = req.cookies.get("wallss_admin")?.value;
-  if (cookie && cookie === process.env.ADMIN_PASSWORD) {
+export async function middleware(req: NextRequest) {
+  const secreto = process.env.ADMIN_PASSWORD;
+  const token = req.cookies.get("wallss_admin")?.value;
+
+  if (secreto && (await validarTokenSesion(secreto, token))) {
     return NextResponse.next();
   }
 

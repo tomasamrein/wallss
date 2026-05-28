@@ -7,26 +7,30 @@ import {
 } from "@/lib/whatsapp";
 
 /**
- * Endpoint de recordatorios al cliente, pensado para ser invocado por un
- * cron (Vercel Cron, Supabase pg_cron + http, GitHub Actions, etc.).
+ * Endpoint de recordatorios al cliente, invocado por un cron (Vercel Cron, que
+ * agrega automáticamente `Authorization: Bearer $CRON_SECRET`).
  *
- *   GET /api/recordatorios?ventana=60
+ *   GET /api/recordatorios?ventana=720
  *
- * Envía un WhatsApp a cada cliente con turno dentro de la ventana indicada
- * (en minutos, por defecto 60). Protegido por la cabecera Authorization con
- * el CRON_SECRET. La lógica de "ya enviado" se deja como TODO del MVP: para
- * producción conviene una columna `recordatorio_enviado_en` en `turnos`.
+ * Envía un WhatsApp a cada cliente con turno pendiente dentro de la ventana
+ * indicada (en minutos) que todavía no recibió recordatorio, y marca
+ * `recordatorio_enviado_en` para no repetir.
+ *
+ * Seguridad: SIEMPRE exige CRON_SECRET. Si no está configurado, se rechaza.
  */
 export async function GET(req: NextRequest) {
   const secreto = process.env.CRON_SECRET;
-  if (secreto) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secreto}`) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+  if (!secreto) {
+    return NextResponse.json(
+      { error: "CRON_SECRET no configurado en el servidor." },
+      { status: 500 },
+    );
+  }
+  if (req.headers.get("authorization") !== `Bearer ${secreto}`) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const ventana = Number(req.nextUrl.searchParams.get("ventana") ?? "60");
+  const ventana = Number(req.nextUrl.searchParams.get("ventana") ?? "720");
   const ahora = new Date();
   const limite = new Date(ahora.getTime() + ventana * 60_000);
 
@@ -35,7 +39,9 @@ export async function GET(req: NextRequest) {
 
   const { data: turnos, error } = await supabase
     .from("turnos")
-    .select("nombre_cliente, telefono_cliente, fecha_hora_inicio")
+    .select("id, nombre_cliente, telefono_cliente, fecha_hora_inicio")
+    .eq("estado", "pendiente")
+    .is("recordatorio_enviado_en", null)
     .gte("fecha_hora_inicio", ahora.toISOString())
     .lte("fecha_hora_inicio", limite.toISOString());
 
@@ -47,7 +53,13 @@ export async function GET(req: NextRequest) {
   for (const t of turnos ?? []) {
     const mensaje = construirMensajeRecordatorio(t, config);
     const ok = await enviarNotificacionWhatsApp(t.telefono_cliente, mensaje);
-    if (ok) enviados += 1;
+    if (ok) {
+      await supabase
+        .from("turnos")
+        .update({ recordatorio_enviado_en: new Date().toISOString() })
+        .eq("id", t.id);
+      enviados += 1;
+    }
   }
 
   return NextResponse.json({ procesados: turnos?.length ?? 0, enviados });

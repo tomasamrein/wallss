@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/recordatorios?ventana=900",
+      "schedule": "0 12 * * *"
+    }
+  ]
+}

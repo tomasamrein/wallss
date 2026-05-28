@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { actualizarEstadoTurno } from "@/app/actions/turnos";
+import { actualizarEstadoTurno, cancelarTurno } from "@/app/actions/turnos";
 import type { EstadoTurno } from "@/lib/types";
 
 export function ControlEstadoTurno({
@@ -27,6 +27,14 @@ export function ControlEstadoTurno({
       } else {
         router.refresh();
       }
+    });
+  }
+
+  function cancelar() {
+    if (!confirm("¿Cancelar este turno? Se libera el horario.")) return;
+    startTransition(async () => {
+      const res = await cancelarTurno(id);
+      if (res.ok) router.refresh();
     });
   }
 
@@ -55,6 +63,15 @@ export function ControlEstadoTurno({
         }`}
       >
         No vino
+      </button>
+      <button
+        type="button"
+        onClick={cancelar}
+        disabled={pendiente}
+        title="Cancelar turno"
+        className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-semibold text-neutral-400 transition hover:border-red-700/60 hover:text-red-300 disabled:opacity-50"
+      >
+        Cancelar
       </button>
     </div>
   );

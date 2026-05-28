@@ -39,6 +39,13 @@ export async function actualizarConfiguracion(
   if (input.duracion_turno_min !== undefined)
     cambios.duracion_turno_min = input.duracion_turno_min;
 
+  if (input.dias_cerrados_semana !== undefined) {
+    const dias = [...new Set(input.dias_cerrados_semana)].filter(
+      (d) => Number.isInteger(d) && d >= 0 && d <= 6,
+    );
+    cambios.dias_cerrados_semana = dias;
+  }
+
   if (
     cambios.hora_apertura !== undefined &&
     cambios.hora_cierre !== undefined &&
@@ -62,6 +69,39 @@ export async function actualizarConfiguracion(
   }
 
   revalidatePath("/admin", "layout");
+  revalidatePath("/");
+  return { ok: true, data: undefined };
+}
+
+/** Agrega un feriado / cierre puntual. */
+export async function agregarFeriado(
+  fecha: string,
+  descripcion: string,
+): Promise<ResultadoAccion> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return { ok: false, error: "Fecha inválida.", codigo: "DATOS_INVALIDOS" };
+  }
+  const supabase = getAdminClient();
+  const { error } = await supabase
+    .from("feriados")
+    .upsert({ fecha, descripcion: descripcion.trim() || null });
+
+  if (error) {
+    return { ok: false, error: "No se pudo guardar el feriado.", codigo: "ERROR_DESCONOCIDO" };
+  }
+  revalidatePath("/admin/configuracion");
+  revalidatePath("/");
+  return { ok: true, data: undefined };
+}
+
+/** Elimina un feriado / cierre puntual. */
+export async function eliminarFeriado(fecha: string): Promise<ResultadoAccion> {
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("feriados").delete().eq("fecha", fecha);
+  if (error) {
+    return { ok: false, error: "No se pudo eliminar el feriado.", codigo: "ERROR_DESCONOCIDO" };
+  }
+  revalidatePath("/admin/configuracion");
   revalidatePath("/");
   return { ok: true, data: undefined };
 }

@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { obtenerConfiguracion } from "@/lib/config";
+import { obtenerSetFeriados } from "@/lib/feriados";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { calcularSlotsDisponibles } from "@/lib/availability";
+import { calcularSlotsDisponibles, esDiaCerrado } from "@/lib/availability";
 import { claveDia, horaLocalAUtc } from "@/lib/datetime";
 import { BookingForm } from "@/components/BookingForm";
 import { SelectorDias } from "@/components/SelectorDias";
@@ -19,6 +20,7 @@ export default async function PaginaPublica({
 }) {
   const { fecha } = await searchParams;
   const config = await obtenerConfiguracion();
+  const feriados = await obtenerSetFeriados();
   const locale = LOCALE_POR_MONEDA[config.moneda_activa];
 
   // Lista de días seleccionables (hoy + próximos), en la zona de la barbería.
@@ -34,10 +36,19 @@ export default async function PaginaPublica({
     }).formatToParts(instante);
     const semana = partes.find((p) => p.type === "weekday")?.value ?? "";
     const numero = partes.find((p) => p.type === "day")?.value ?? "";
-    return { iso, semana: semana.replace(".", ""), numero, esHoy: i === 0 };
+    return {
+      iso,
+      semana: semana.replace(".", ""),
+      numero,
+      esHoy: i === 0,
+      cerrado: esDiaCerrado(iso, config, feriados),
+    };
   });
 
-  const fechaSeleccionada = dias.some((d) => d.iso === fecha) ? fecha! : null;
+  // Solo es seleccionable un día visible que no esté cerrado.
+  const fechaSeleccionada = dias.some((d) => d.iso === fecha && !d.cerrado)
+    ? fecha!
+    : null;
 
   // Si hay día elegido, calculamos sus horarios disponibles.
   let slotsISO: string[] = [];
@@ -58,6 +69,7 @@ export default async function PaginaPublica({
       fechaISO: fechaSeleccionada,
       config,
       turnosOcupadosISO: (ocupados ?? []).map((t) => t.fecha_hora_inicio),
+      feriados,
     }).map((s) => s.toISOString());
 
     fechaLegible = new Intl.DateTimeFormat(locale, {

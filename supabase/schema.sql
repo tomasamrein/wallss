@@ -26,6 +26,8 @@ create table if not exists public.configuracion (
   hora_apertura       smallint     not null default 9   check (hora_apertura between 0 and 23),
   hora_cierre         smallint     not null default 20  check (hora_cierre   between 1 and 24),
   duracion_turno_min  smallint     not null default 30  check (duracion_turno_min > 0),
+  -- Días de la semana cerrados de forma recurrente (0=Dom … 6=Sáb).
+  dias_cerrados_semana smallint[]  not null default '{}',
   actualizado_en      timestamptz  not null default now(),
   -- Garantiza que sólo exista una fila de configuración.
   constraint configuracion_singleton check (id = 1)
@@ -51,6 +53,8 @@ create table if not exists public.turnos (
   -- Estado del turno. Solo 'completado' cuenta para las ganancias.
   estado              text         not null default 'pendiente'
                         check (estado in ('pendiente', 'completado', 'ausente')),
+  -- Marca de cuándo se envió el recordatorio (evita doble envío desde el cron).
+  recordatorio_enviado_en timestamptz,
   creado_en           timestamptz  not null default now()
 );
 
@@ -61,13 +65,22 @@ create table if not exists public.turnos (
 create or replace function public.preparar_turno()
 returns trigger
 language plpgsql
+set search_path = ''            -- evita ataques por search_path mutable
 as $$
+declare
+  v_duracion smallint;
 begin
   if new.fecha_hora_inicio <= now() + interval '1 hour' then
     raise exception 'ANTELACION_INSUFICIENTE: el turno debe reservarse con al menos 1 hora de antelación.'
       using errcode = 'check_violation';
   end if;
-  new.fecha_hora_fin := new.fecha_hora_inicio + interval '30 minutes';
+
+  -- La duración del turno sale de la configuración (overlap exacto a la grilla).
+  select duracion_turno_min into v_duracion
+  from public.configuracion where id = 1;
+
+  new.fecha_hora_fin := new.fecha_hora_inicio
+    + (coalesce(v_duracion, 30)::text || ' minutes')::interval;
   return new;
 end;
 $$;
@@ -113,3 +126,12 @@ create index if not exists idx_turnos_estado
 -- ============================================================================
 alter table public.turnos        enable row level security;
 alter table public.configuracion enable row level security;
+
+-- ============================================================================
+--  4. FERIADOS / CIERRES PUNTUALES
+-- ============================================================================
+create table if not exists public.feriados (
+  fecha       date primary key,
+  descripcion text
+);
+alter table public.feriados enable row level security;

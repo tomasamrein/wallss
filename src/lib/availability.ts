@@ -8,6 +8,22 @@ import { horaLocalAUtc } from "@/lib/datetime";
 export const ANTELACION_MINIMA_MIN = 60;
 
 /**
+ * Indica si un día (YYYY-MM-DD, hora de pared local) está cerrado, ya sea por
+ * cierre recurrente del día de la semana o por feriado puntual.
+ */
+export function esDiaCerrado(
+  fechaISO: string,
+  config: Pick<Configuracion, "dias_cerrados_semana">,
+  feriados: Set<string>,
+): boolean {
+  if (feriados.has(fechaISO)) return true;
+  const [year, month, day] = fechaISO.split("-").map(Number);
+  // getUTCDay sobre una fecha "pura" (sin hora) da el día de semana correcto.
+  const diaSemana = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return config.dias_cerrados_semana.includes(diaSemana);
+}
+
+/**
  * ENTREGABLE 4 · Filtra horarios demasiado próximos a la hora actual.
  *
  * Recibe un array de horarios (Date o strings ISO) y devuelve un NUEVO array
@@ -84,9 +100,11 @@ export function calcularSlotsDisponibles(params: {
   fechaISO: string;
   config: Configuracion;
   turnosOcupadosISO: string[];
+  feriados?: Set<string>;
   ahora?: Date;
 }): Date[] {
-  const { fechaISO, config, turnosOcupadosISO, ahora } = params;
+  const { fechaISO, config, turnosOcupadosISO, feriados, ahora } = params;
+  if (feriados && esDiaCerrado(fechaISO, config, feriados)) return [];
   const grilla = generarSlotsDelDia(fechaISO, config);
   const libres = filtrarSlotsOcupados(grilla, turnosOcupadosISO);
   return filtrarPorAntelacion(libres, ahora);

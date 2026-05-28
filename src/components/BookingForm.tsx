@@ -24,6 +24,7 @@ export function BookingForm({
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot anti-bots
   const [estado, setEstado] = useState<Estado>({ tipo: "idle" });
 
   if (estado.tipo === "exito") {
@@ -62,6 +63,7 @@ export function BookingForm({
         nombre_cliente: nombre,
         telefono_cliente: telefono,
         fecha_hora_inicio: seleccion,
+        website,
       });
       if (res.ok) {
         setEstado({
@@ -122,6 +124,17 @@ export function BookingForm({
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               className="w-full rounded-xl border border-line bg-ink px-4 py-3 text-base outline-none transition focus:border-gold"
+            />
+            {/* Honeypot: oculto a humanos, los bots tienden a completarlo. */}
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              aria-hidden="true"
+              className="absolute -left-[9999px] h-0 w-0 opacity-0"
             />
           </div>
 

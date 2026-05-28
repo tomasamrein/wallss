@@ -18,6 +18,8 @@ export type Configuracion = {
   hora_apertura: number;
   hora_cierre: number;
   duracion_turno_min: number;
+  /** Días de semana cerrados de forma recurrente (0=Dom … 6=Sáb). */
+  dias_cerrados_semana: number[];
   actualizado_en: string;
 };
 
@@ -31,8 +33,16 @@ export type ConfiguracionUpdate = Partial<
     | "hora_apertura"
     | "hora_cierre"
     | "duracion_turno_min"
+    | "dias_cerrados_semana"
   >
 >;
+
+/** Feriado / cierre puntual. */
+export type Feriado = {
+  /** "YYYY-MM-DD". */
+  fecha: string;
+  descripcion: string | null;
+};
 
 /** Fila de la tabla `turnos`. Las fechas viajan como ISO 8601 (timestamptz). */
 export type Turno = {
@@ -43,6 +53,7 @@ export type Turno = {
   fecha_hora_inicio: string;
   fecha_hora_fin: string;
   estado: EstadoTurno;
+  recordatorio_enviado_en: string | null;
   creado_en: string;
 };
 
@@ -98,7 +109,16 @@ export type Database = {
       turnos: {
         Row: Turno;
         Insert: NuevoTurno;
-        Update: Partial<NuevoTurno> & { estado?: EstadoTurno };
+        Update: Partial<NuevoTurno> & {
+          estado?: EstadoTurno;
+          recordatorio_enviado_en?: string | null;
+        };
+        Relationships: [];
+      };
+      feriados: {
+        Row: Feriado;
+        Insert: Feriado;
+        Update: Partial<Feriado>;
         Relationships: [];
       };
     };

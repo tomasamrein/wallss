@@ -4,6 +4,9 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { obtenerConfiguracion } from "@/lib/config";
+import { obtenerSetFeriados } from "@/lib/feriados";
+import { generarSlotsDelDia, esDiaCerrado } from "@/lib/availability";
+import { claveDia } from "@/lib/datetime";
 import {
   enviarNotificacionWhatsApp,
   construirMensajeBarbero,
@@ -12,6 +15,8 @@ import type { EstadoTurno, ResultadoAccion, Turno } from "@/lib/types";
 
 const ANTELACION_MS = 60 * 60_000;
 const ESTADOS_VALIDOS: EstadoTurno[] = ["pendiente", "completado", "ausente"];
+const MAX_TURNOS_PENDIENTES_POR_TELEFONO = 3;
+const TELEFONO_REGEX = /^[\d+\-\s()]{6,30}$/;
 
 /**
  * Crea un turno desde el panel público.
@@ -28,13 +33,26 @@ export async function crearTurno(input: {
   nombre_cliente: string;
   telefono_cliente: string;
   fecha_hora_inicio: string;
+  /** Campo honeypot anti-bots: si viene con valor, se descarta. */
+  website?: string;
 }): Promise<ResultadoAccion<Turno>> {
+  // Honeypot: un humano nunca completa este campo oculto.
+  if (input.website && input.website.trim() !== "") {
+    return { ok: false, error: "Solicitud inválida.", codigo: "DATOS_INVALIDOS" };
+  }
+
   const nombre = input.nombre_cliente?.trim();
   const telefono = input.telefono_cliente?.trim();
   const inicio = input.fecha_hora_inicio;
 
   if (!nombre || !telefono || !inicio) {
     return { ok: false, error: "Faltan datos obligatorios.", codigo: "DATOS_INVALIDOS" };
+  }
+  if (nombre.length < 2 || nombre.length > 80) {
+    return { ok: false, error: "El nombre no es válido.", codigo: "DATOS_INVALIDOS" };
+  }
+  if (!TELEFONO_REGEX.test(telefono)) {
+    return { ok: false, error: "El teléfono no es válido.", codigo: "DATOS_INVALIDOS" };
   }
 
   const fecha = new Date(inicio);
@@ -50,7 +68,41 @@ export async function crearTurno(input: {
     };
   }
 
+  // Validación server-side: el horario debe ser un slot legítimo de la grilla
+  // (dentro de horario, en la grilla de duración) y el día no debe estar cerrado.
+  const config = await obtenerConfiguracion();
+  const fechaISO = claveDia(fecha, config.zona_horaria);
+  const feriados = await obtenerSetFeriados();
+
+  if (esDiaCerrado(fechaISO, config, feriados)) {
+    return { ok: false, error: "Ese día la barbería está cerrada.", codigo: "DATOS_INVALIDOS" };
+  }
+
+  const esSlotValido = generarSlotsDelDia(fechaISO, config).some(
+    (s) => s.getTime() === fecha.getTime(),
+  );
+  if (!esSlotValido) {
+    return { ok: false, error: "Ese horario no está disponible.", codigo: "DATOS_INVALIDOS" };
+  }
+
   const supabase = getAdminClient();
+
+  // Anti-spam: limitar turnos futuros pendientes por teléfono.
+  const { count } = await supabase
+    .from("turnos")
+    .select("id", { count: "exact", head: true })
+    .eq("telefono_cliente", telefono)
+    .eq("estado", "pendiente")
+    .gte("fecha_hora_inicio", new Date().toISOString());
+
+  if ((count ?? 0) >= MAX_TURNOS_PENDIENTES_POR_TELEFONO) {
+    return {
+      ok: false,
+      error: "Ya tenés varios turnos reservados. Cancelá uno antes de sacar otro.",
+      codigo: "DATOS_INVALIDOS",
+    };
+  }
+
   const { data, error } = await supabase
     .from("turnos")
     .insert({
@@ -119,6 +171,20 @@ export async function actualizarEstadoTurno(
   }
 
   revalidatePath("/admin");
+  return { ok: true, data: undefined };
+}
+
+/** Cancela (elimina) un turno desde el panel admin y libera el horario. */
+export async function cancelarTurno(id: string): Promise<ResultadoAccion> {
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("turnos").delete().eq("id", id);
+
+  if (error) {
+    return { ok: false, error: "No se pudo cancelar el turno.", codigo: "ERROR_DESCONOCIDO" };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
   return { ok: true, data: undefined };
 }
 

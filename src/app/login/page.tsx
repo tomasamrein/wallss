@@ -32,7 +32,9 @@ export default async function LoginAdmin({
         />
         {error && (
           <p className="rounded-xl border border-red-800/50 bg-red-950/40 px-4 py-2.5 text-sm text-red-300">
-            Contraseña incorrecta.
+            {error === "throttle"
+              ? "Demasiados intentos. Esperá unos minutos."
+              : "Contraseña incorrecta."}
           </p>
         )}
         <button
